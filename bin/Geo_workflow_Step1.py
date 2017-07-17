@@ -1,19 +1,21 @@
 import pandas as pd
 import numpy as np
-import glob2
-import re
 import os
+import fnmatch
 from scipy import stats, integrate
 import matplotlib.pyplot as plt
 import seaborn as sns
-scrubber = raw_input('\nRemove all non-VPROMMS_ID roads? y = yes, n = no\n')
-district = str(raw_input('\nDistrict Code: (YD | TT) '))
-InPath = r'C:\Users\charl\Documents\Vietnam\Fieldwork\\roadlab_bin_%s' % district
-OutPath = r'C:\Users\charl\Documents\Vietnam\Analysis\Workflow_%s' % district
+# scrubber = raw_input('\nRemove all non-VPROMMS_ID roads? y = yes, n = no\n')
+scrubber = 'n'
+InPath = '/opt/data/input'
+OutPath = '/opt/data/output'
 sdthresh = 0.5
 
 # Line file
-file_names_list = glob2.glob(InPath+'\\'+'**'+'\\*intervals*.csv')
+file_names_list = []
+for root, dirnames, filenames in os.walk(InPath):
+    for filename in fnmatch.filter(filenames, '*Intervals*.csv'):
+        file_names_list.append(os.path.join(root, filename))
 
 for files in file_names_list:
     print files+'\n'
@@ -26,12 +28,8 @@ for files in file_names_list:
     dataframes.append(df)
 X = pd.concat(dataframes, ignore_index=True)
 X['Line_Geometry'] = 'LINESTRING ('+X['start_lon'].map(str)+' '+X['start_lat'].map(str)+', '+X['end_lon'].map(str)+' '+X['end_lat'].map(str)+')'
-X['Part1'] = X['Input_file'].map(str).str.extract(('(bin.*\.csv)'), expand=False)
-X['Part1'] = X['Part1'].map(str).str.replace('bin', '').str.replace('\.csv', '')
-X['Part1'] = X['Part1'].str.split('\\').str.get(-3)
-X['Part2'] = X['Input_file'].map(str).str.extract(('(bin.*\.csv)'),expand=False)
-X['Part2'] = X['Part2'].map(str).str.replace('bin', '').str.replace('\.csv', '')
-X['Part2'] = X['Part2'].str.split('\\').str.get(-2)
+X['Part1'] = X['Input_file'].map(str).str.extract((r'.*/(.+?)/.+?/.+?\.csv$'), expand=False)
+X['Part2'] = X['Input_file'].map(str).str.extract((r'.*/.+?/(.+?)/.+?\.csv$'), expand=False)
 for y in X.Part1.unique():
     miniframe = X.loc[X['Part1'] == y]
     n = 1
@@ -44,10 +42,13 @@ if scrubber == 'y':
     X = X[X.VPROMMS_ID.str.contains('OTHER*') == False]
 else:
    pass
-X.to_csv(OutPath+'\\'+'FOR_JOIN_INTS.csv')
+X.to_csv(OutPath+'/'+'FOR_JOIN_INTS.csv')
 
 # Point file
-file_names_list2 = glob2.glob(InPath+'\\'+'**'+'\\*RoadPath'+'*.csv')
+file_names_list2 = []
+for root, dirnames, filenames in os.walk(InPath):
+    for filename in fnmatch.filter(filenames, '*RoadPath*.csv'):
+        file_names_list2.append(os.path.join(root, filename))
 
 for files in file_names_list2:
     print files+'\n'
@@ -60,12 +61,8 @@ for files in file_names_list2:
     dataframes2.append(df)
 Y = pd.concat(dataframes2, ignore_index=True)
 Y['Point_Geometry'] = 'POINT ('+Y['longitude'].map(str)+' '+Y['latitude'].map(str)+')'
-Y['Part1'] = Y['Input_file'].map(str).str.extract(('(bin.*\.csv)'),expand=False)
-Y['Part1'] = Y['Part1'].map(str).str.replace('bin', '').str.replace('\.csv', '')
-Y['Part1'] = Y['Part1'].str.split('\\').str.get(-3)
-Y['Part2'] = Y['Input_file'].map(str).str.extract(('(bin.*\.csv)'),expand=False)
-Y['Part2'] = Y['Part2'].map(str).str.replace('bin', '').str.replace('\.csv', '')
-Y['Part2'] = Y['Part2'].str.split('\\').str.get(-2)
+Y['Part1'] = Y['Input_file'].map(str).str.extract((r'.*/(.+?)/.+?/.+?\.csv$'), expand=False)
+Y['Part2'] = Y['Input_file'].map(str).str.extract((r'.*/.+?/(.+?)/.+?\.csv$'), expand=False)
 for y in Y.Part1.unique():
     miniframe = Y.loc[Y['Part1'] == y]
     n = 1
@@ -128,6 +125,6 @@ def outliers(points,name,thresh = sdthresh):
 def plotter(Z, name):
     ax = sns.distplot(Z, bins = 20, hist = False, rug=True, label = name)
     fig1 = ax.get_figure()
-    fig1.savefig("%s\\%s.png" % (OutPath, name))
+    fig1.savefig("%s/%s.png" % (OutPath, name))
 
 main(Y)

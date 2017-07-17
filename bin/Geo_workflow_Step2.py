@@ -1,18 +1,13 @@
 ## LIBRARY IMPORTS ##
 import pandas as pd
-import shapely
-import gdal
-import fiona
-import sys, os
+import os
 from shapely.geometry import Point, LineString, MultiPoint
 from shapely.wkt import loads
 import geopandas as gpd
-import rtree
 from scipy import stats, integrate
 import matplotlib.pyplot as plt
 import seaborn as sns
 import pyproj
-import numpy as np
 
 ## USER INPUTS ##
 graphs = 'y'
@@ -25,8 +20,7 @@ geod = pyproj.Geod(ellps='WGS84')  #for calculating distance measurements
 print '\n## Welcome to the Data Manipulation Script for Roadlab Pro ##'
 print '\nInitiating Data import. Data will be imported in projection %s and exported in %s projection' % (crs_in['init'], crs_out['init'])
 switch = 'n' #raw_input('\nAverage nearby traces? y = yes, n = no\n')
-district = str(raw_input('\nDistrict Code: (YD | TT) '))
-Path = r'C:\Users\charl\Documents\Vietnam\Analysis\Workflow_%s' % district
+Path = '/opt/data/output'
 print '\n\n## Commence manipulations ##'
 
 ## FUNCTIONS ##
@@ -56,7 +50,7 @@ def LINEGROUPER(x2):
     try:
         y['LINER'] = [LineString(x2.geometry.tolist())]
     except:
-        y['LINER'] = 'null'
+        y['LINER'] = None
     y['iri_mean'] = [x2.iri.mean()]
     y['iri_med'] = [x2.iri.median()]
     y['iri_min'] = [x2.iri.min()]
@@ -159,6 +153,7 @@ geop = [Point(xy) for xy in zip(IRIpoints.longitude, IRIpoints.latitude)]
 IRIpoints2 = gpd.GeoDataFrame(IRIpoints, geometry=geop, crs = crs_in)
 IRIlines = IRIpoints2.groupby(['VPROMMS_ID']).apply(lambda x: GROUPER(x, 'line'))
 IRIlines = IRIlines.loc[IRIlines['npoints'] > 4]
+IRIlines['VPROMMS_ID_real'] = IRIlines['VPROMMS_ID'].str.extract(r'^(\d{3}\w{2}\d{5}).*$', expand=False)
 
 ## OUTPUTS ##
 
@@ -177,7 +172,7 @@ print "\nPre-write file format: Point frame to SHP:\n"
 IRIlines2 = gpd.GeoDataFrame(IRIlines, geometry=IRIlines['LINER'], crs=crs_in)
 IRIlines2 = IRIlines2.to_crs(crs_out)
 #GDFdescriber(IRIlines2)
-#IRIlines2.to_file(os.path.join(Path, 'OutputLines_%s.shp'%switch), driver = 'ESRI Shapefile')
+# IRIlines2.to_file(os.path.join(Path, 'OutputLines_%s.shp'%switch), driver = 'ESRI Shapefile')
 
 #Output  points file now with IRI as CSV
 print "\nSending point frame to CSV...\n"
@@ -196,7 +191,7 @@ if graphs == 'y':
     Original_IRI = OriginalplotIRI.astype('int')
     Post_IRI = IRIlines['iri_med'].dropna()
     Post_IRI = Post_IRI.astype('int')
-    plotterhist(Original_IRI,'Original IRI', Post_IRI, 'Post S-Join IRI')
+    # plotterhist(Original_IRI,'Original IRI', Post_IRI, 'Post S-Join IRI')
 else:
     pass
 
