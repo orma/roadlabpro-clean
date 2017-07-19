@@ -1,0 +1,6 @@
+# Set the default behavior, in case people don't have core.autocrlf set
+* text=auto
+
+# Force all filetypes to have unix eols, so Windows does not break them
+# This is okay since there should be no binary files checked in to this repo
+*.* text eol=lf
