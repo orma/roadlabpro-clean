@@ -153,7 +153,6 @@ geop = [Point(xy) for xy in zip(IRIpoints.longitude, IRIpoints.latitude)]
 IRIpoints2 = gpd.GeoDataFrame(IRIpoints, geometry=geop, crs = crs_in)
 IRIlines = IRIpoints2.groupby(['VPROMMS_ID']).apply(lambda x: GROUPER(x, 'line'))
 IRIlines = IRIlines.loc[IRIlines['npoints'] > 4]
-IRIlines['VPROMMS_ID_real'] = IRIlines['VPROMMS_ID'].str.extract(r'^(\d{3}\w{2}\d{5}).*$', expand=False)
 
 ## OUTPUTS ##
 
@@ -172,7 +171,9 @@ print "\nPre-write file format: Point frame to SHP:\n"
 IRIlines2 = gpd.GeoDataFrame(IRIlines, geometry=IRIlines['LINER'], crs=crs_in)
 IRIlines2 = IRIlines2.to_crs(crs_out)
 #GDFdescriber(IRIlines2)
-# IRIlines2.to_file(os.path.join(Path, 'OutputLines_%s.shp'%switch), driver = 'ESRI Shapefile')
+# Cannot serialize the lines if there is a Shapely geometry row
+IRIlines2 = IRIlines2.drop(['LINER'], axis=1)
+IRIlines2.to_file(os.path.join(Path, 'OutputLines_%s.shp'%switch), driver = 'ESRI Shapefile')
 
 #Output  points file now with IRI as CSV
 print "\nSending point frame to CSV...\n"
