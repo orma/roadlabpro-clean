@@ -174,6 +174,7 @@ IRIlines2 = IRIlines2.to_crs(crs_out)
 # Cannot serialize the lines if there is a Shapely geometry row
 IRIlines2 = IRIlines2.drop(['LINER'], axis=1)
 IRIlines2.to_file(os.path.join(Path, 'OutputLines_%s.shp'%switch), driver = 'ESRI Shapefile')
+IRIlines2.to_file(os.path.join(Path, 'OutputLines_%s.geojson'%switch), driver = 'GeoJSON')
 
 #Output  points file now with IRI as CSV
 print "\nSending point frame to CSV...\n"
@@ -185,6 +186,7 @@ IRIpoints2 = IRIpoints2.drop(['error','disterror','timeerror'], axis =1)
 IRIpoints2 = IRIpoints2.to_crs(crs_out)
 #GDFdescriber(IRIpoints2)
 IRIpoints2.to_file(os.path.join(Path, 'OutputPoints_%s.shp'%switch), driver = 'ESRI Shapefile')
+IRIpoints2.to_file(os.path.join(Path, 'OutputPoints_%s.geojson'%switch), driver = 'GeoJSON')
 
 #Graphs
 if graphs == 'y':
