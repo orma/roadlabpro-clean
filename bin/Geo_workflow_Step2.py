@@ -154,6 +154,27 @@ IRIpoints2 = gpd.GeoDataFrame(IRIpoints, geometry=geop, crs = crs_in)
 IRIlines = IRIpoints2.groupby(['VPROMMS_ID']).apply(lambda x: GROUPER(x, 'line'))
 IRIlines = IRIlines.loc[IRIlines['npoints'] > 4]
 
+IRIlines2 = gpd.GeoDataFrame(IRIlines, geometry=IRIlines['LINER'], crs=crs_in)
+IRIlines2 = IRIlines2.to_crs(crs_out)
+
+# Standardize VPRoMMS road IDs
+# They should all be in the `###AA#####` pattern, with trailing text
+# Sometimes, they're missing some leading zeros in the latter half
+# `dataframe.extractall` could solve this more concisely, but causes
+# confusing index issues with the created dataframe
+FIRST_PART_PATTERN = r'^(\d{3}[a-zA-Z]{2})\d{1,5}.*?$'
+SECOND_PART_PATTERN = r'^\d{3}[a-zA-Z]{2}(\d{1,5}).*?$'
+
+IRIlines2['first'] = IRIlines2['VPROMMS_ID'].str.extract(FIRST_PART_PATTERN).str.upper()
+IRIlines2['second'] = IRIlines2['VPROMMS_ID'].str.extract(SECOND_PART_PATTERN).str.zfill(5)
+IRIlines2['or_vpromms'] = IRIlines2['first'] + IRIlines2['second']
+IRIlines2 = IRIlines2.drop(['first', 'second'], axis=1)
+
+IRIpoints2['first'] = IRIpoints2['VPROMMS_ID'].str.extract(FIRST_PART_PATTERN).str.upper()
+IRIpoints2['second'] = IRIpoints2['VPROMMS_ID'].str.extract(SECOND_PART_PATTERN).str.zfill(5)
+IRIpoints2['or_vpromms'] = IRIpoints2['first'] + IRIpoints2['second']
+IRIpoints2 = IRIpoints2.drop(['first', 'second'], axis=1)
+
 ## OUTPUTS ##
 
 #Input RLPlines as shapefile
@@ -168,13 +189,10 @@ IRIlines.to_csv(os.path.join(Path, 'IRIlines_csv_format_%s.csv'%switch), index =
 
 #Output new lines as shapefile
 print "\nPre-write file format: Point frame to SHP:\n"
-IRIlines2 = gpd.GeoDataFrame(IRIlines, geometry=IRIlines['LINER'], crs=crs_in)
-IRIlines2 = IRIlines2.to_crs(crs_out)
 #GDFdescriber(IRIlines2)
 # Cannot serialize the lines if there is a Shapely geometry row
 IRIlines2 = IRIlines2.drop(['LINER'], axis=1)
 IRIlines2.to_file(os.path.join(Path, 'OutputLines_%s.shp'%switch), driver = 'ESRI Shapefile')
-IRIlines2.to_file(os.path.join(Path, 'OutputLines_%s.geojson'%switch), driver = 'GeoJSON')
 
 #Output  points file now with IRI as CSV
 print "\nSending point frame to CSV...\n"
@@ -186,7 +204,23 @@ IRIpoints2 = IRIpoints2.drop(['error','disterror','timeerror'], axis =1)
 IRIpoints2 = IRIpoints2.to_crs(crs_out)
 #GDFdescriber(IRIpoints2)
 IRIpoints2.to_file(os.path.join(Path, 'OutputPoints_%s.shp'%switch), driver = 'ESRI Shapefile')
-IRIpoints2.to_file(os.path.join(Path, 'OutputPoints_%s.geojson'%switch), driver = 'GeoJSON')
+
+# Output GeoJSON files
+IRIlines2 = IRIlines2.drop(['length', 'npoints'], axis=1)
+IRIlines2.rename(columns={'VPROMMS_ID': 'name'}, inplace=True)
+IRIlines2['source'] = 'RoadLabPro'
+try:
+    os.remove(os.path.join(Path, 'OutputLines_%s.geojson'%switch))
+except:
+    pass
+IRIlines2.to_file(os.path.join(Path, 'OutputLines_%s.geojson'%switch), driver='GeoJSON')
+
+try:
+    os.remove(os.path.join(Path, 'OutputPoints_%s.geojson'%switch))
+except:
+    pass
+IRIpoints2 = IRIpoints2.drop(['latitude', 'longitude', 'VPROMMS_ID', 'timediff', 'distdiff', 'speed', 'cerror', 'RelativeIRI', 'Distance_meters', 'Cm_Distance_metres'], axis=1)
+IRIpoints2.to_file(os.path.join(Path, 'OutputPoints_%s.geojson'%switch), driver='GeoJSON')
 
 #Graphs
 if graphs == 'y':
