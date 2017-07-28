@@ -205,10 +205,11 @@ IRIpoints2 = IRIpoints2.to_crs(crs_out)
 #GDFdescriber(IRIpoints2)
 IRIpoints2.to_file(os.path.join(Path, 'OutputPoints_%s.shp'%switch), driver = 'ESRI Shapefile')
 
-# Output GeoJSON files
+# Output GeoJSON files, in WGS84 datum
 IRIlines2 = IRIlines2.drop(['length', 'npoints'], axis=1)
 IRIlines2.rename(columns={'VPROMMS_ID': 'name'}, inplace=True)
 IRIlines2['source'] = 'RoadLabPro'
+IRIlines2 = IRIlines2.to_crs(crs_in)
 try:
     os.remove(os.path.join(Path, 'OutputLines_%s.geojson'%switch))
 except:
@@ -220,6 +221,7 @@ try:
 except:
     pass
 IRIpoints2 = IRIpoints2.drop(['latitude', 'longitude', 'VPROMMS_ID', 'timediff', 'distdiff', 'speed', 'cerror', 'RelativeIRI', 'Distance_meters', 'Cm_Distance_metres'], axis=1)
+IRIpoints2 = IRIpoints2.to_crs(crs_in)
 IRIpoints2.to_file(os.path.join(Path, 'OutputPoints_%s.geojson'%switch), driver='GeoJSON')
 
 #Graphs
